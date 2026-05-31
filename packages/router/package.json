@@ -1,6 +1,6 @@
 {
-  "name": "@kolo/router",
-  "version": "0.0.1",
+  "name": "@kololabs/router",
+  "version": "1.0.1",
   "private": false,
   "description": "Jupiter swap routing for the Kolo SPL Auto-Convert SDK",
   "type": "module",
@@ -14,7 +14,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
@@ -33,5 +35,10 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/poolparty21/SPL-Auto-Convert-SDK.git",
+    "directory": "packages/router"
   }
 }

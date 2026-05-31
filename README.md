@@ -6,10 +6,10 @@ A modular monorepo for building SPL token auto-conversion pipelines on Solana.
 
 | Package | Description |
 |---------|-------------|
-| [`@kolo/core`](./packages/core) | Core utilities and shared types |
-| [`@kolo/gas`](./packages/gas) | Gas estimation and fee management |
-| [`@kolo/listener`](./packages/listener) | On-chain event listening |
-| [`@kolo/router`](./packages/router) | Payment routing logic |
+| [`@kololabs/core`](./packages/core) | Core utilities and shared types |
+| [`@kololabs/gas`](./packages/gas) | Gas estimation and fee management |
+| [`@kololabs/listener`](./packages/listener) | On-chain event listening |
+| [`@kololabs/router`](./packages/router) | Payment routing logic |
 
 ## Prerequisites
 

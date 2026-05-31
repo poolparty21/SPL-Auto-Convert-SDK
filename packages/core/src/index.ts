@@ -1,10 +1,10 @@
 import { Connection, VersionedTransaction } from "@solana/web3.js";
-import { createListener } from "@kolo/listener";
-import type { TransferEvent, ListenerConfig, Listener } from "@kolo/listener";
-import { getQuote, getSwapTransaction } from "@kolo/router";
-import type { JupiterQuoteResponse, JupiterSwapResponse, JupiterOptions } from "@kolo/router";
-import { createGasManager } from "@kolo/gas";
-import type { GasConfig, GasManager, GasStatus } from "@kolo/gas";
+import { createListener } from "@kololabs/listener";
+import type { TransferEvent, ListenerConfig, Listener } from "@kololabs/listener";
+import { getQuote, getSwapTransaction } from "@kololabs/router";
+import type { JupiterQuoteResponse, JupiterSwapResponse, JupiterOptions } from "@kololabs/router";
+import { createGasManager } from "@kololabs/gas";
+import type { GasConfig, GasManager, GasStatus } from "@kololabs/gas";
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -65,9 +65,9 @@ export interface KoloEngine {
  * Create a `KoloEngine` that monitors a Solana wallet for incoming SPL token
  * transfers and automatically swaps them into a target token (e.g. USDT).
  *
- * Internally creates a {@linkcode Listener} (via `@kolo/listener`),
- * a {@linkcode GasManager} (via `@kolo/gas`), and uses {@linkcode getQuote}
- * and {@linkcode getSwapTransaction} from `@kolo/router`.
+ * Internally creates a {@linkcode Listener} (via `@kololabs/listener`),
+ * a {@linkcode GasManager} (via `@kololabs/gas`), and uses {@linkcode getQuote}
+ * and {@linkcode getSwapTransaction} from `@kololabs/router`.
  *
  * Failed swaps are retried once with +100 bps slippage before calling `onError`.
  *

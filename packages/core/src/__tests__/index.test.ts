@@ -2,31 +2,31 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createEngine } from "../index.js";
 import type { KoloEngineConfig } from "../index.js";
 
-// ── Mock @kolo/listener ───────────────────────────────────────────
+// ── Mock @kololabs/listener ───────────────────────────────────────────
 // Mock functions are module-scoped so they persist across clears
 const mockListenerStart = vi.fn<() => Promise<void>>();
 const mockListenerStop = vi.fn<() => Promise<void>>();
 
-vi.mock("@kolo/listener", () => ({
+vi.mock("@kololabs/listener", () => ({
   createListener: vi.fn(() => ({
     start: mockListenerStart,
     stop: mockListenerStop,
   })),
 }));
 
-// ── Mock @kolo/router ────────────────────────────────────────────
+// ── Mock @kololabs/router ────────────────────────────────────────────
 
-vi.mock("@kolo/router", () => ({
+vi.mock("@kololabs/router", () => ({
   getQuote: vi.fn(),
   getSwapTransaction: vi.fn(),
 }));
 
-// ── Mock @kolo/gas ────────────────────────────────────────────────
+// ── Mock @kololabs/gas ────────────────────────────────────────────────
 
 const mockCheckBalance = vi.fn();
 const mockNeedsTopUp = vi.fn();
 
-vi.mock("@kolo/gas", () => ({
+vi.mock("@kololabs/gas", () => ({
   createGasManager: vi.fn(() => ({
     checkBalance: mockCheckBalance,
     needsTopUp: mockNeedsTopUp,
@@ -94,8 +94,8 @@ describe("createEngine", () => {
   it("should create listener, gas manager, and connection on construction", async () => {
     createEngine(baseConfig);
 
-    const { createListener: mockCL } = await import("@kolo/listener");
-    const { createGasManager: mockCGM } = await import("@kolo/gas");
+    const { createListener: mockCL } = await import("@kololabs/listener");
+    const { createGasManager: mockCGM } = await import("@kololabs/gas");
     const { Connection: MockConn } = await import("@solana/web3.js");
 
     expect(mockCL).toHaveBeenCalledTimes(1);
@@ -114,7 +114,7 @@ describe("createEngine", () => {
   it("should forward onError when listener reports an error", async () => {
     createEngine(baseConfig);
 
-    const { createListener: mockCL } = await import("@kolo/listener");
+    const { createListener: mockCL } = await import("@kololabs/listener");
     const listenerCfg = (mockCL as any).mock.calls[0][0];
 
     const testError = new Error("Listener connection error");
@@ -125,7 +125,7 @@ describe("createEngine", () => {
 
   describe("transfer handling", () => {
     async function getOnTransfer(): Promise<(event: any) => Promise<void>> {
-      const { createListener: mockCL } = await import("@kolo/listener");
+      const { createListener: mockCL } = await import("@kololabs/listener");
       return (mockCL as any).mock.calls[0][0].onTransfer;
     }
 
@@ -150,7 +150,7 @@ describe("createEngine", () => {
         receiver: baseConfig.walletAddress,
       });
 
-      const { getQuote } = await import("@kolo/router");
+      const { getQuote } = await import("@kololabs/router");
       expect(getQuote).not.toHaveBeenCalled();
       expect(baseConfig.onError).not.toHaveBeenCalled();
       expect(baseConfig.onSwapComplete).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe("createEngine", () => {
         receiver: baseConfig.walletAddress,
       });
 
-      const { getQuote } = await import("@kolo/router");
+      const { getQuote } = await import("@kololabs/router");
       expect(getQuote).not.toHaveBeenCalled();
       expect(baseConfig.onError).toHaveBeenCalledTimes(1);
       expect(baseConfig.onError).toHaveBeenCalledWith(
@@ -196,7 +196,7 @@ describe("createEngine", () => {
       });
       mockNeedsTopUp.mockResolvedValue(false);
 
-      const { getQuote, getSwapTransaction } = await import("@kolo/router");
+      const { getQuote, getSwapTransaction } = await import("@kololabs/router");
       (getQuote as any).mockResolvedValue({
         inputMint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
         outputMint: baseConfig.targetMint,
@@ -258,7 +258,7 @@ describe("createEngine", () => {
       });
       mockNeedsTopUp.mockResolvedValue(false);
 
-      const { getQuote, getSwapTransaction } = await import("@kolo/router");
+      const { getQuote, getSwapTransaction } = await import("@kololabs/router");
       (getQuote as any)
         .mockRejectedValueOnce(new Error("Jupiter error"))
         .mockResolvedValueOnce({
@@ -329,7 +329,7 @@ describe("createEngine", () => {
       });
       mockNeedsTopUp.mockResolvedValue(false);
 
-      const { getQuote } = await import("@kolo/router");
+      const { getQuote } = await import("@kololabs/router");
       (getQuote as any)
         .mockRejectedValueOnce(new Error("First attempt failed"))
         .mockRejectedValueOnce(new Error("Retry also failed"));
