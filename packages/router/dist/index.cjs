@@ -1,112 +1,38 @@
-"use strict";
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+'use strict';
 
-// src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  estimateValueInUsd: () => estimateValueInUsd,
-  executeSwap: () => executeSwap,
-  getQuote: () => getQuote,
-  getSwapTransaction: () => getSwapTransaction,
-  getTokenPriceInUsd: () => getTokenPriceInUsd
-});
-module.exports = __toCommonJS(index_exports);
-var import_buffer = require("buffer");
-var import_web3 = require("@solana/web3.js");
-var DEFAULT_JUP_API = "https://quote-api.jup.ag/v6";
-var DEFAULT_USDT_MINT = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
-async function getQuote(inputMint, amount, options) {
-  const outputMint = options?.outputMint ?? DEFAULT_USDT_MINT;
-  const slippageBps = options?.slippageBps ?? 50;
-  const onlyDirectRoutes = options?.onlyDirectRoutes ?? false;
-  const apiBase = options?.apiBase ?? DEFAULT_JUP_API;
-  const params = new URLSearchParams({
-    inputMint,
-    outputMint,
-    amount,
-    slippageBps: String(slippageBps),
-    onlyDirectRoutes: String(onlyDirectRoutes)
-  });
-  const url = `${apiBase}/quote?${params}`;
+var core = require('@kololabs/core');
+
+// src/jupiter.ts
+async function getQuote(inputMint, amount, slippageBps = 50) {
+  const url = `${core.JUP_API_BASE}/quote?inputMint=${inputMint}&outputMint=${core.USDT_MINT}&amount=${amount}&slippageBps=${slippageBps}&onlyDirectRoutes=false`;
   const response = await fetch(url);
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(
-      `Jupiter quote error (${response.status}): ${response.statusText}${text ? ` \u2014 ${text}` : ""}`
-    );
+    throw new Error(`Jupiter quote error: ${response.statusText}`);
   }
-  return response.json();
+  return await response.json();
 }
-async function getSwapTransaction(quoteResponse, userPublicKey, options) {
-  const wrapAndUnwrapSol = options?.wrapAndUnwrapSol ?? true;
-  const prioritizationFeeLamports = options?.prioritizationFeeLamports ?? "auto";
-  const dynamicComputeUnitLimit = options?.dynamicComputeUnitLimit ?? true;
-  const apiBase = options?.apiBase ?? DEFAULT_JUP_API;
-  const response = await fetch(`${apiBase}/swap`, {
+async function getSwapTransaction(quoteResponse, userPublicKey) {
+  const response = await fetch(`${core.JUP_API_BASE}/swap`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       quoteResponse,
       userPublicKey,
-      wrapAndUnwrapSol,
-      dynamicComputeUnitLimit,
-      prioritizationFeeLamports
+      wrapAndUnwrapSol: true,
+      prioritizationFeeLamports: "auto"
     })
   });
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(
-      `Jupiter swap error (${response.status}): ${response.statusText}${text ? ` \u2014 ${text}` : ""}`
-    );
+    const errorText = await response.text();
+    throw new Error(`Jupiter swap error: ${errorText}`);
   }
-  return response.json();
+  return await response.json();
 }
-async function executeSwap(swapResponse, keypair, connection, options) {
-  const commitment = options?.commitment ?? "confirmed";
-  const txBuffer = import_buffer.Buffer.from(swapResponse.swapTransaction, "base64");
-  const transaction = import_web3.VersionedTransaction.deserialize(txBuffer);
-  transaction.sign([keypair]);
-  const signature = await connection.sendRawTransaction(
-    transaction.serialize(),
-    { skipPreflight: false, maxRetries: 3 }
-  );
-  const confirmation = await connection.confirmTransaction(
-    signature,
-    commitment
-  );
-  if (confirmation.value.err) {
-    throw new Error(`Swap transaction failed: ${confirmation.value.err}`);
-  }
-  return signature;
-}
-async function getTokenPriceInUsd(mint, options) {
+async function getTokenPriceInUsd(mint) {
   try {
-    const apiBase = options?.apiBase ?? DEFAULT_JUP_API;
-    const quoteAmount = 10 ** 6;
-    const params = new URLSearchParams({
-      inputMint: mint,
-      outputMint: DEFAULT_USDT_MINT,
-      amount: String(quoteAmount),
-      slippageBps: "100",
-      onlyDirectRoutes: "true"
-    });
-    const response = await fetch(`${apiBase}/quote?${params}`);
+    const response = await fetch(
+      `${core.JUP_API_BASE}/quote?inputMint=${mint}&outputMint=${core.USDT_MINT}&amount=${10 ** 6}&slippageBps=100&onlyDirectRoutes=true`
+    );
     if (!response.ok) return null;
     const data = await response.json();
     return parseFloat(data.outAmount) / 1e6;
@@ -114,9 +40,9 @@ async function getTokenPriceInUsd(mint, options) {
     return null;
   }
 }
-async function estimateValueInUsd(mint, rawAmount, decimals, options) {
+async function estimateValueInUsd(mint, rawAmount, decimals) {
   try {
-    const price = await getTokenPriceInUsd(mint, options);
+    const price = await getTokenPriceInUsd(mint);
     if (price === null) return null;
     const amount = parseFloat(rawAmount) / 10 ** decimals;
     return amount * price;
@@ -124,12 +50,10 @@ async function estimateValueInUsd(mint, rawAmount, decimals, options) {
     return null;
   }
 }
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
-  estimateValueInUsd,
-  executeSwap,
-  getQuote,
-  getSwapTransaction,
-  getTokenPriceInUsd
-});
+
+exports.estimateValueInUsd = estimateValueInUsd;
+exports.getQuote = getQuote;
+exports.getSwapTransaction = getSwapTransaction;
+exports.getTokenPriceInUsd = getTokenPriceInUsd;
+//# sourceMappingURL=index.cjs.map
 //# sourceMappingURL=index.cjs.map

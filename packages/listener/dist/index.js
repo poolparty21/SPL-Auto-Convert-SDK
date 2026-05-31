@@ -1,92 +1,94 @@
-// src/index.ts
-import { Connection, PublicKey } from "@solana/web3.js";
-var TOKEN_PROGRAM_ID = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
-function validateConfig(config) {
-  if (!config.rpcUrl) throw new Error("rpcUrl is required");
-  if (!config.walletAddress) throw new Error("walletAddress is required");
-  if (typeof config.onTransfer !== "function")
-    throw new Error("onTransfer callback is required");
-  if (typeof config.onError !== "function")
-    throw new Error("onError callback is required");
+// src/helius.ts
+var BASE_URL = "https://api.helius.xyz/v0";
+function getApiKey() {
+  return process.env.HELIUS_API_KEY;
 }
-function isTokenTransferLog(logs) {
-  const text = logs.join(" ");
-  return text.includes(TOKEN_PROGRAM_ID) && /\bTransfer\b/i.test(text);
+function getWebhookId() {
+  return process.env.HELIUS_WEBHOOK_ID;
 }
-function createListener(config) {
-  validateConfig(config);
-  const connection = new Connection(config.rpcUrl);
-  const walletPk = new PublicKey(config.walletAddress);
-  const walletStr = config.walletAddress;
-  let subId = null;
-  async function handleLogs(logs, slot) {
-    if (logs.err) return;
-    if (!isTokenTransferLog(logs.logs)) return;
-    try {
-      const tx = await connection.getParsedTransaction(logs.signature, {
-        maxSupportedTransactionVersion: 0
-      });
-      if (!tx?.meta) return;
-      const pre = tx.meta.preTokenBalances ?? [];
-      const post = tx.meta.postTokenBalances ?? [];
-      for (const postBalance of post) {
-        const preBalance = pre.find(
-          (p) => p.accountIndex === postBalance.accountIndex
-        );
-        if (!preBalance) continue;
-        const preAmt = BigInt(preBalance.uiTokenAmount.amount);
-        const postAmt = BigInt(postBalance.uiTokenAmount.amount);
-        if (postAmt === preAmt) continue;
-        const owner = postBalance.owner ?? preBalance.owner ?? "";
-        if (postAmt > preAmt) {
-          if (owner === walletStr) {
-            config.onTransfer({
-              signature: logs.signature,
-              slot,
-              mint: postBalance.mint,
-              amount: (postAmt - preAmt).toString(),
-              sender: preBalance.owner ?? "unknown",
-              receiver: walletStr
-            });
-          }
-        } else {
-          if (owner === walletStr) {
-            config.onTransfer({
-              signature: logs.signature,
-              slot,
-              mint: preBalance.mint,
-              amount: (preAmt - postAmt).toString(),
-              sender: walletStr,
-              receiver: postBalance.owner ?? "unknown"
-            });
-          }
-        }
-      }
-    } catch (err) {
-      config.onError(
-        err instanceof Error ? err : new Error(String(err))
-      );
-    }
+async function addWalletToWebhook(address) {
+  const apiKey = getApiKey();
+  const webhookId = getWebhookId();
+  if (!apiKey || !webhookId) {
+    console.warn("Helius webhook not configured: missing HELIUS_API_KEY or HELIUS_WEBHOOK_ID");
+    return;
   }
-  return {
-    async start() {
-      subId = await connection.onLogs(
-        walletPk,
-        (logs, context) => {
-          handleLogs(logs, context.slot).catch(config.onError);
-        },
-        "confirmed"
-      );
-    },
-    async stop() {
-      if (subId !== null) {
-        await connection.removeOnLogsListener(subId);
-        subId = null;
-      }
+  try {
+    const getRes = await fetch(`${BASE_URL}/webhooks/${webhookId}?api-key=${apiKey}`);
+    if (!getRes.ok) {
+      console.error("Failed to fetch Helius webhook:", await getRes.text());
+      return;
     }
-  };
+    const webhook = await getRes.json();
+    const currentAddresses = webhook.accountAddresses || [];
+    if (currentAddresses.includes(address)) {
+      return;
+    }
+    const updatedAddresses = [...currentAddresses, address];
+    const patchRes = await fetch(
+      `${BASE_URL}/webhooks/${webhookId}?api-key=${apiKey}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountAddresses: updatedAddresses,
+          webhookURL: webhook.webhookURL,
+          webhookType: webhook.webhookType,
+          transactionTypes: webhook.transactionTypes,
+          authHeader: webhook.authHeader,
+          txnStatus: webhook.txnStatus
+        })
+      }
+    );
+    if (!patchRes.ok) {
+      console.error("Failed to update Helius webhook:", await patchRes.text());
+      return;
+    }
+    console.log(`Added wallet ${address} to Helius webhook`);
+  } catch (error) {
+    console.error("Helius webhook update error:", error);
+  }
 }
-export {
-  createListener
-};
+async function removeWalletFromWebhook(address) {
+  const apiKey = getApiKey();
+  const webhookId = getWebhookId();
+  if (!apiKey || !webhookId) {
+    console.warn("Helius webhook not configured");
+    return;
+  }
+  try {
+    const getRes = await fetch(`${BASE_URL}/webhooks/${webhookId}?api-key=${apiKey}`);
+    if (!getRes.ok) {
+      console.error("Failed to fetch Helius webhook:", await getRes.text());
+      return;
+    }
+    const webhook = await getRes.json();
+    const currentAddresses = webhook.accountAddresses || [];
+    const updatedAddresses = currentAddresses.filter((a) => a !== address);
+    if (updatedAddresses.length === currentAddresses.length) {
+      return;
+    }
+    await fetch(
+      `${BASE_URL}/webhooks/${webhookId}?api-key=${apiKey}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountAddresses: updatedAddresses,
+          webhookURL: webhook.webhookURL,
+          webhookType: webhook.webhookType,
+          transactionTypes: webhook.transactionTypes,
+          authHeader: webhook.authHeader,
+          txnStatus: webhook.txnStatus
+        })
+      }
+    );
+    console.log(`Removed wallet ${address} from Helius webhook`);
+  } catch (error) {
+    console.error("Helius webhook update error:", error);
+  }
+}
+
+export { addWalletToWebhook, removeWalletFromWebhook };
+//# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map

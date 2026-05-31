@@ -1,76 +1,194 @@
-import { VersionedTransaction } from '@solana/web3.js';
+import { Keypair, Connection } from '@solana/web3.js';
 
-/** Configuration for `KoloEngine`. */
-interface KoloEngineConfig {
-    /** Solana RPC URL. */
-    rpcUrl: string;
-    /** The wallet address to monitor for incoming transfers. */
-    walletAddress: string;
-    /** The token mint to swap INTO (e.g. USDT). */
-    targetMint: string;
-    /** Minimum SOL balance required before executing swaps. Default 0.1. */
-    minimumBalanceSol?: number;
-    /** Target SOL balance to maintain. Defaults to minimumBalanceSol * 2. */
-    targetBalanceSol?: string;
-    /** Slippage tolerance in basis points. Default 50 (0.5 %). */
-    slippageBps?: number;
-    /**
-     * Signing function. Receives a deserialized `VersionedTransaction` and must
-     * sign it and return the transaction signature (base58).
-     */
-    signer: (transaction: VersionedTransaction) => Promise<string>;
-    /** Called after a successful swap. */
-    onSwapComplete?: (event: SwapCompleteEvent) => void;
-    /** Called when a swap fails after retry. */
-    onError?: (error: Error) => void;
+type ChainId = 'solana' | 'base' | 'avalanche';
+declare const CHAIN_IDS: ChainId[];
+interface ChainConfig {
+    id: ChainId;
+    name: string;
+    label: string;
+    usdtMint: string;
+    nativeCurrency: string;
+    nativeMint: string;
+    explorer: string;
+    explorerTxPath: string;
+    explorerAccountPath: string;
+    rpcUrlEnvVar: string;
+    swapApiBase: string;
+    routerAddress: string;
+    wrappedNative: string;
+    gasConstants: {
+        minNative: number;
+        targetNative: number;
+    };
+    color: string;
+    gradientFrom: string;
+    gradientTo: string;
+    gradientBg: string;
 }
-/** Payload passed to `onSwapComplete`. */
-interface SwapCompleteEvent {
-    /** The transaction signature of the swap. */
+declare const CHAINS: Record<ChainId, ChainConfig>;
+declare const DEFAULT_CHAIN: ChainId;
+declare function getChainConfig(chain: ChainId): ChainConfig;
+declare function getChainIdFromString(s: string): ChainId;
+declare function isValidChainAddress(address: string, chain: ChainId): boolean;
+
+interface Wallet {
+    id: string;
+    chain: ChainId;
+    public_key: string;
+    encrypted_private_key: string;
+    encryption_salt: string;
+    encryption_iv: string;
+    encryption_auth_tag: string;
+    auto_convert_enabled: boolean;
+    cold_wallet_enabled: boolean;
+    cold_wallet_address: string | null;
+    cold_wallet_threshold_usd: number;
+    subscription_active: boolean;
+    subscription_expires_at: string | null;
+    created_at: string;
+    updated_at: string;
+}
+interface Transaction {
+    id: string;
+    wallet_id: string;
+    chain: ChainId;
+    incoming_tx_hash: string;
+    incoming_mint: string;
+    incoming_symbol: string | null;
+    incoming_amount: number;
+    incoming_value_usd: number | null;
+    action_type: 'swapped' | 'sent_to_cold' | 'failed' | 'skipped_low_gas';
+    output_tx_hash: string | null;
+    output_amount: number | null;
+    output_mint: string | null;
+    error_message: string | null;
+    created_at: string;
+}
+interface Payment {
+    id: string;
+    wallet_id: string;
+    chain: ChainId;
+    amount: number;
+    token: 'SOL' | 'USDT' | 'ETH' | 'AVAX';
+    tx_hash: string;
+    payment_type: 'subscription' | 'topup';
+    status: 'confirmed' | 'pending';
+    created_at: string;
+}
+interface HeliusWebhookPayload {
+    webhookID: string;
+    accountData: Array<{
+        account: string;
+        nativeBalanceChange: number;
+        tokenBalanceChanges: Array<{
+            userAccount: string;
+            tokenAccount: string;
+            mint: string;
+            rawTokenAmount: {
+                tokenAmount: string;
+                decimals: number;
+            };
+        }>;
+    }>;
     signature: string;
-    /** The mint of the token that was swapped FROM. */
+    type: string;
+    nativeTransfers: Array<{
+        fromUserAccount: string;
+        toUserAccount: string;
+        amount: number;
+    }>;
+    tokenTransfers: Array<{
+        fromUserAccount: string;
+        toUserAccount: string;
+        fromTokenAccount: string;
+        toTokenAccount: string;
+        mint: string;
+        rawTokenAmount: {
+            tokenAmount: string;
+            decimals: number;
+        };
+    }>;
+}
+interface JupiterQuoteResponse {
     inputMint: string;
-    /** The raw amount that was swapped (stringified u64). */
-    inputAmount: string;
-    /** The mint of the token that was swapped INTO. */
     outputMint: string;
-    /** The output amount in whole units (not raw). */
-    outputAmount: number;
+    inAmount: string;
+    outAmount: string;
+    otherAmountThreshold: string;
+    priceImpactPct: string;
+    routePlan: Array<{
+        swapInfo: {
+            label: string;
+            inputMint: string;
+            outputMint: string;
+            inAmount: string;
+            outAmount: string;
+            feeAmount: string;
+            feeMint: string;
+        };
+    }>;
 }
-/** Interface returned by `createEngine`. */
-interface KoloEngine {
-    /** Start monitoring for incoming transfers. */
-    start(): Promise<void>;
-    /** Stop monitoring and clean up. */
-    stop(): Promise<void>;
+interface JupiterSwapResponse {
+    swapTransaction: string;
+    lastValidBlockHeight: number;
+    prioritizationFeeLamports: number;
+    computeUnitLimit: number;
+    prioritizationType: {
+        computeBudget: {
+            microLamports: number;
+            estimatedMicroLamports: number;
+        };
+    };
+    dynamicSlippageReport: {
+        slippageBps: number;
+        otherAmount: number;
+        simulatedIncurredSlippageBps: number;
+    };
+    simulationError: string | null;
 }
-/**
- * Create a `KoloEngine` that monitors a Solana wallet for incoming SPL token
- * transfers and automatically swaps them into a target token (e.g. USDT).
- *
- * Internally creates a {@linkcode Listener} (via `@kololabs/listener`),
- * a {@linkcode GasManager} (via `@kololabs/gas`), and uses {@linkcode getQuote}
- * and {@linkcode getSwapTransaction} from `@kololabs/router`.
- *
- * Failed swaps are retried once with +100 bps slippage before calling `onError`.
- *
- * @example
- * ```ts
- * const engine = createEngine({
- *   rpcUrl: "https://api.mainnet-beta.solana.com",
- *   walletAddress: "...",
- *   targetMint: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB", // USDT
- *   minimumBalanceSol: 0.1,
- *   signer: async (tx) => { tx.sign([myKeypair]); return tx.signatures[0].toString(); },
- *   onSwapComplete: (event) => console.log("Swapped", event),
- *   onError: (err) => console.error("Swap failed", err),
- * });
- *
- * await engine.start();
- * // ... later
- * await engine.stop();
- * ```
- */
-declare function createEngine(config: KoloEngineConfig): KoloEngine;
+interface Balance {
+    solBalance: number;
+    usdtBalance: number;
+}
 
-export { type KoloEngine, type KoloEngineConfig, type SwapCompleteEvent, createEngine };
+declare function encryptPrivateKey(privateKeyHex: string, userPassword: string, serverSecret: string): {
+    encryptedData: string;
+    salt: string;
+    iv: string;
+    authTag: string;
+};
+declare function encryptPrivateKeyServerOnly(privateKeyHex: string, serverSecret: string): {
+    encryptedData: string;
+    salt: string;
+    iv: string;
+    authTag: string;
+};
+declare function decryptPrivateKey(encryptedData: string, userPassword: string, serverSecret: string, salt: string, iv: string, authTag: string): string;
+declare function decryptPrivateKeyServerOnly(encryptedData: string, serverSecret: string, salt: string, iv: string, authTag: string): string;
+
+declare function getSolBalance(publicKey: string, connection?: Connection): Promise<number>;
+declare function getTokenBalance(publicKey: string, mintAddress: string, connection?: Connection): Promise<number>;
+declare function generateWallet(): {
+    keypair: Keypair;
+    publicKey: string;
+    secretKeyHex: string;
+    mnemonic: string;
+};
+declare function getKeypairFromSecretKeyHex(hex: string): Keypair;
+declare function signAndSendTransaction(transactionHex: string, secretKeyHex: string, connection?: Connection): Promise<string>;
+declare function getKeypairFromPrivateKey(base58Key: string): Keypair;
+declare function isValidSolanaAddress(address: string): boolean;
+declare function isValidEvmAddress(address: string): boolean;
+declare function shortenAddress(address: string, chars?: number): string;
+declare function formatSol(lamports: number): string;
+declare function formatNative(amount: number, decimals?: number): string;
+declare function formatUsd(amount: number): string;
+declare function getExplorerUrl(type: 'tx' | 'address', hash: string, explorerBase?: string): string;
+
+declare const USDT_MINT: string;
+declare const JUP_API_BASE: string;
+declare const MIN_GAS_SOL: number;
+declare const TARGET_GAS_SOL: number;
+declare const SOL_MINT: string;
+
+export { type Balance, CHAINS, CHAIN_IDS, type ChainConfig, type ChainId, DEFAULT_CHAIN, type HeliusWebhookPayload, JUP_API_BASE, type JupiterQuoteResponse, type JupiterSwapResponse, MIN_GAS_SOL, type Payment, SOL_MINT, TARGET_GAS_SOL, type Transaction, USDT_MINT, type Wallet, decryptPrivateKey, decryptPrivateKeyServerOnly, encryptPrivateKey, encryptPrivateKeyServerOnly, formatNative, formatSol, formatUsd, generateWallet, getChainConfig, getChainIdFromString, getExplorerUrl, getKeypairFromPrivateKey, getKeypairFromSecretKeyHex, getSolBalance, getTokenBalance, isValidChainAddress, isValidEvmAddress, isValidSolanaAddress, shortenAddress, signAndSendTransaction };

@@ -1,28 +1,34 @@
+import { CHAINS, getSolBalance } from '@kololabs/core';
+
 // src/index.ts
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
-function createGasManager(config) {
-  const connection = new Connection(config.rpcUrl);
-  const publicKey = new PublicKey(config.walletAddress);
-  const minimumBalance = config.minimumBalanceSol;
-  const targetBalance = config.targetBalanceSol ?? minimumBalance * 2;
+var MIN_GAS_SOL = CHAINS.solana.gasConstants.minNative;
+var TARGET_GAS_SOL = CHAINS.solana.gasConstants.targetNative;
+async function checkGasForSwap(publicKey) {
+  const balance = await getSolBalance(publicKey);
   return {
-    async checkBalance() {
-      const lamports = await connection.getBalance(publicKey);
-      const currentBalance = lamports / LAMPORTS_PER_SOL;
-      return {
-        currentBalance,
-        minimumBalance,
-        hasEnoughGas: currentBalance >= minimumBalance,
-        deficit: Math.max(0, minimumBalance - currentBalance)
-      };
-    },
-    async needsTopUp() {
-      const status = await this.checkBalance();
-      return !status.hasEnoughGas || status.currentBalance < targetBalance;
-    }
+    sufficient: balance >= MIN_GAS_SOL,
+    balance,
+    minRequired: MIN_GAS_SOL,
+    target: TARGET_GAS_SOL
   };
 }
-export {
-  createGasManager
-};
+async function shouldKeepSolForGas(publicKey) {
+  const balance = await getSolBalance(publicKey);
+  return {
+    keep: balance < TARGET_GAS_SOL,
+    balance,
+    target: TARGET_GAS_SOL
+  };
+}
+async function gasDeficit(publicKey) {
+  const balance = await getSolBalance(publicKey);
+  return {
+    deficit: Math.max(0, TARGET_GAS_SOL - balance),
+    balance,
+    target: TARGET_GAS_SOL
+  };
+}
+
+export { MIN_GAS_SOL, TARGET_GAS_SOL, checkGasForSwap, gasDeficit, shouldKeepSolForGas };
+//# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map
