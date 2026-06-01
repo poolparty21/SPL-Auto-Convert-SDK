@@ -19,11 +19,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@kololabs/core": "workspace:*"
+    "@solana/web3.js": "^1.98.0"
   },
   "devDependencies": {
     "tsup": "^8.4.0",
     "typescript": "^5.8.0",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.0",
+    "@types/node": "^22.0.0"
   }
 }
