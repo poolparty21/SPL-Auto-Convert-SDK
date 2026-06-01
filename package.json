@@ -1,0 +1,17 @@
+{
+  "name": "spl-auto-convert-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SPL Auto-Convert SDK — automatically convert SOL to USDT",
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=11.0.0"
+  }
+}
