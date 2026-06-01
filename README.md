@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@kololabs/core)](https://www.npmjs.com/package/@kololabs/core)
 [![License: MIT](https://img.shields.io/github/license/poolparty21/SPL-Auto-Convert-SDK)](LICENSE)
-[![CI](https://github.com/poolparty21/SPL-Auto-Convert-SDK/actions/workflows/ci.yml/badge.svg?branch=fresh-sdk)](https://github.com/poolparty21/SPL-Auto-Convert-SDK/actions/workflows/ci.yml?query=branch%3Afresh-sdk)
+[![CI](https://github.com/poolparty21/SPL-Auto-Convert-SDK/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/poolparty21/SPL-Auto-Convert-SDK/actions/workflows/ci.yml?query=branch%3Amain)
 [![Solana](https://img.shields.io/badge/Solana-3.0.0-9945FF?logo=solana)](https://solana.com)
 
 Automatic SOL to USDT conversion on Solana. Built for [savingswallet.online](https://savingswallet.online).
