@@ -5,7 +5,7 @@
   "license": "MIT",
   "description": "SPL Auto-Convert SDK — automatically convert SOL to USDT",
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=packages/listener && npm run build --workspace=packages/gas && npm run build --workspace=packages/router && npm run build --workspace=packages/core",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "typecheck": "npm run typecheck --workspaces",
