@@ -2,6 +2,7 @@
   "name": "spl-auto-convert-sdk",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "SPL Auto-Convert SDK \u2014 automatically convert SOL to USDT",
   "scripts": {
     "build": "pnpm -r build",
