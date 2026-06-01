@@ -28,7 +28,7 @@ importers:
         specifier: ^22.0.0
         version: 22.19.19
       tsup:
-        specifier: ^8.4.0
+        specifier: ^8.0.0
         version: 8.5.1(postcss@8.5.15)(typescript@5.9.3)
       typescript:
         specifier: ^5.8.0
@@ -47,7 +47,7 @@ importers:
         specifier: ^22.0.0
         version: 22.19.19
       tsup:
-        specifier: ^8.4.0
+        specifier: ^8.0.0
         version: 8.5.1(postcss@8.5.15)(typescript@5.9.3)
       typescript:
         specifier: ^5.8.0
@@ -66,7 +66,7 @@ importers:
         specifier: ^22.0.0
         version: 22.19.19
       tsup:
-        specifier: ^8.4.0
+        specifier: ^8.0.0
         version: 8.5.1(postcss@8.5.15)(typescript@5.9.3)
       typescript:
         specifier: ^5.8.0
@@ -85,7 +85,7 @@ importers:
         specifier: ^22.0.0
         version: 22.19.19
       tsup:
-        specifier: ^8.4.0
+        specifier: ^8.0.0
         version: 8.5.1(postcss@8.5.15)(typescript@5.9.3)
       typescript:
         specifier: ^5.8.0
