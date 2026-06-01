@@ -14,9 +14,9 @@
     }
   },
   "scripts": {
-    "build": "../node_modules/.bin/tsup src/index.ts --format cjs,esm --dts",
-    "test": "../node_modules/.bin/vitest run",
-    "typecheck": "../node_modules/.bin/tsc --noEmit",
+    "build": "../../node_modules/.bin/tsup src/index.ts --format cjs,esm --dts",
+    "test": "../../node_modules/.bin/vitest run",
+    "typecheck": "../../node_modules/.bin/tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
