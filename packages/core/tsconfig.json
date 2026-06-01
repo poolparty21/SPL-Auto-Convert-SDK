@@ -1,8 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src"
+    "baseUrl": ".",
+    "paths": {
+      "@kololabs/*": ["../../node_modules/@kololabs/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src/**/*"]
 }
