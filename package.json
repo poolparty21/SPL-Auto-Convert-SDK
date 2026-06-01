@@ -9,7 +9,7 @@
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "typecheck": "npm run typecheck --workspaces",
-    "clean": "pnpm -r clean",
+    "clean": "npm run clean --workspaces",
     "version-packages": "changeset version",
     "release": "changeset publish"
   },
@@ -17,7 +17,6 @@
     "@changesets/cli": "^2.31.0"
   },
   "workspaces": [
-    "packages/*",
-    "examples/*"
+    "packages/*"
   ]
 }
