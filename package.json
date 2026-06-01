@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "SPL Auto-Convert SDK \u2014 automatically convert SOL to USDT",
+  "description": "SPL Auto-Convert SDK — automatically convert SOL to USDT",
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
@@ -19,6 +19,7 @@
   },
   "packageManager": "pnpm@11.5.0",
   "devDependencies": {
-    "@changesets/cli": "^2.31.0"
+    "@changesets/cli": "^2.31.0",
+    "tsup": "8.3.0"
   }
 }
